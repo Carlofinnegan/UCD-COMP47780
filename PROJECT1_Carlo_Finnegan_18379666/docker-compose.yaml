@@ -1,0 +1,56 @@
+services:
+  database:
+    image: postgres
+    container_name: database
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    depends_on:
+      - database
+    ports:
+      - "8091:8080"
+    networks:
+      - backend
+
+  api:
+    build: ./api
+    container_name: api
+    depends_on:
+      - database
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - ./api:/api
+
+  
+  web-app:
+    build: ./web-app
+    container_name: web-app
+    depends_on:
+      - database
+      - api
+    ports:
+      - "8090:5000"
+    networks:
+      - frontend
+    volumes:
+      - ./web-app:/app
+
+
+volumes:
+  db-data:
+
+networks:
+  backend:
+  frontend:
