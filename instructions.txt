@@ -1,0 +1,56 @@
+
+sudo docker compose up
+
+
+
+
+
+curl -X POST http://localhost:5002/users/add \
+  -H "Content-Type: application/json" \
+  -d '{"studentid": "18379666", "firstname": "Carlo", "lastname": "Finnegan", "email": "carlo.finnegan@ucdconnect.ie"}'
+
+
+curl http://localhost:5002/users/all
+
+
+curl http://localhost:5002/users/18379666
+
+
+curl -X PUT http://localhost:5002/users/18379666 \
+  -H "Content-Type: application/json" \
+  -d '{"firstname": "CarloChange", "lastname": "Finnegan", "email": "carlo.finnegan@ucdconnect.ie""}'
+
+
+curl -X DELETE http://localhost:5002/users/18379666
+
+
+curl http://localhost:5002/users/all
+
+
+
+
+
+
+
+curl -X POST http://localhost:5006/books/add \
+  -H "Content-Type: application/json" \
+  -d '{"bookid": "123", "title": "Cloud Computing", "author": "Carlo Finnegan"}'
+
+
+curl http://localhost:5006/books/all
+
+
+curl http://localhost:5006/books/123
+
+
+curl -X PUT http://localhost:5006/books/123 \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Distributed Systems", "author": "Carlo Finnegan"}'
+
+
+curl http://localhost:5006/books/123
+
+curl -X DELETE http://localhost:5006/books/123
+
+
+curl http://localhost:5006/books/all
