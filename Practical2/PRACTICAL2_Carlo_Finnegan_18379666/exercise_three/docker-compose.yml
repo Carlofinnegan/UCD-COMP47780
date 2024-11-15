@@ -1,0 +1,81 @@
+services:
+  database:
+    image: postgres
+    container_name: database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - my-network
+    env_file:
+      - ./.env 
+
+
+  rabbitmq:
+    image: "rabbitmq:3.13-rc-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_HEARTBEAT=0 
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="-rabbit tcp_listeners [5672] -rabbit heartbeat 0" 
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - my-network
+    env_file:
+      - ./.env 
+
+  user:
+    image: carlofinnegan/userservice:latest
+    container_name: user
+    ports:
+      - "5002:5002"
+    depends_on:
+      - database
+      - rabbitmq
+    networks:
+      - my-network
+    env_file:
+      - ./.env 
+
+  book:
+    image: carlofinnegan/bookservice:latest
+    container_name: book
+    ports:
+      - "5006:5006"
+    depends_on:
+      - database
+    networks:
+      - my-network
+    env_file:
+      - ./.env 
+
+
+  borrow:
+    image: carlofinnegan/borrowservice:latest
+    container_name: borrow
+    ports:
+      - "5008:5008"
+    depends_on:
+      - database
+    networks:
+      - my-network
+    env_file:
+      - ./.env 
+
+
+volumes:
+  db-data:
+
+networks:
+  my-network:
+    driver: bridge
