@@ -25,10 +25,10 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_HEARTBEAT=0 
-      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="-rabbit tcp_listeners [5672] -rabbit heartbeat 0" 
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_HEARTBEAT=0
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit tcp_listeners [5672]
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
     networks:
       - my-network
     env_file:

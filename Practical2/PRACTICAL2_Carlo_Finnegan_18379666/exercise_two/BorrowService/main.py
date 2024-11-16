@@ -91,7 +91,6 @@ def process_borrow_request(ch, method, properties, body):
                 logger.warning(f"Book {bookid} does not exist")
                 return
 
-            # Check if student has borrowed less than 5 books
             active_borrows = Borrow.query.filter_by(studentid=studentid).count()
             if active_borrows >= 5:
                 logger.info(f"Student {studentid} has reached borrow limit")
