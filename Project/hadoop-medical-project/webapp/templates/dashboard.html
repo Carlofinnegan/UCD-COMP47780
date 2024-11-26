@@ -182,6 +182,7 @@
             ySelect.value = 'trestbps';
         }
 
+                // Update scatter plot
         // Update scatter plot
         function updateScatterPlot() {
             const xVar = document.getElementById('xVariable').value;
@@ -191,15 +192,43 @@
                 scatterChart.destroy();
             }
 
+            // Function to add small random jitter to prevent perfect overlaps
+            function addJitter(value) {
+                return value + (Math.random() - 0.5) * 0.2;
+            }
+
+            // Create a map to track points at each coordinate
+            const coordinateMap = new Map();
+
+            // Prepare datasets with jitter and point tracking
             const datasets = Object.entries(clusterData).map(([clusterId, data]) => {
                 const color = `hsl(${360 * (parseInt(clusterId) / Object.keys(clusterData).length)}, 70%, 50%)`;
                 
+                // Process points and track coordinates
+                const points = data.points.map(point => {
+                    const x = point[Object.keys(featureNames).indexOf(xVar)];
+                    const y = point[Object.keys(featureNames).indexOf(yVar)];
+                    const key = `${x},${y}`;
+                    
+                    // Track points at these coordinates
+                    if (!coordinateMap.has(key)) {
+                        coordinateMap.set(key, { count: 0, points: [] });
+                    }
+                    coordinateMap.get(key).count++;
+                    coordinateMap.get(key).points.push({ x, y, clusterId });
+                    
+                    // Add slight jitter to overlapping points
+                    return {
+                        x: coordinateMap.get(key).count > 1 ? addJitter(x) : x,
+                        y: coordinateMap.get(key).count > 1 ? addJitter(y) : y,
+                        originalX: x,
+                        originalY: y
+                    };
+                });
+
                 return {
                     label: `Cluster ${clusterId}`,
-                    data: data.points.map(point => ({
-                        x: point[Object.keys(featureNames).indexOf(xVar)],
-                        y: point[Object.keys(featureNames).indexOf(yVar)]
-                    })),
+                    data: points,
                     backgroundColor: color,
                     pointStyle: 'circle',
                     pointRadius: 5,
@@ -231,7 +260,34 @@
                     plugins: {
                         legend: {
                             position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    // Use original (non-jittered) coordinates
+                                    const key = `${point.originalX},${point.originalY}`;
+                                    const pointsAtLocation = coordinateMap.get(key);
+                                    if (pointsAtLocation.count > 1) {
+                                        return [
+                                            `${context.dataset.label}`,
+                                            `${featureNames[xVar]}: ${point.originalX}`,
+                                            `${featureNames[yVar]}: ${point.originalY}`,
+                                            `Points at this location: ${pointsAtLocation.count}`
+                                        ];
+                                    }
+                                    return [
+                                        `${context.dataset.label}`,
+                                        `${featureNames[xVar]}: ${point.originalX}`,
+                                        `${featureNames[yVar]}: ${point.originalY}`
+                                    ];
+                                }
+                            }
                         }
+                    },
+                    interaction: {
+                        intersect: true,
+                        mode: 'nearest'
                     }
                 }
             });
