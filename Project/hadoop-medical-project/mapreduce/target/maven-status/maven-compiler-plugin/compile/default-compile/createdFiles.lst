@@ -1,3 +1,4 @@
-org/myorg/WordCount$IntSumReducer.class
-org/myorg/WordCount.class
-org/myorg/WordCount$TokenizerMapper.class
+org/myorg/KMeansClusterer.class
+org/myorg/KMeansClusterer$Point.class
+org/myorg/KMeansClusterer$KMeansReducer.class
+org/myorg/KMeansClusterer$KMeansMapper.class

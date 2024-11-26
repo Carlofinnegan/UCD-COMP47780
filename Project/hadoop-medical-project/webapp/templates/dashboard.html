@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Heart Disease Clustering Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .chart-container {
+            height: 500px;
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+        .stat-card div {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+            margin-top: 10px;
+        }
+        .cluster-stats {
+            margin-top: 40px;
+            overflow-x: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .cluster-stats table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .cluster-stats th, .cluster-stats td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .cluster-stats th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .cluster-stats tr:hover {
+            background-color: #f5f5f5;
+        }
+        select, button {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 8px 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        h1, h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Heart Disease Clustering Analysis</h1>
+        
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>Total Clusters</h3>
+                <div id="totalClusters">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Patients</h3>
+                <div id="totalPoints">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Features Used</h3>
+                <div id="dimensions">-</div>
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <h3>Select Variables to Plot</h3>
+            X-Axis: <select id="xVariable"></select>
+            Y-Axis: <select id="yVariable"></select>
+            <button onclick="updateScatterPlot()">Update Plot</button>
+        </div>
+
+        <div class="chart-container">
+            <h2>Variable Comparison by Cluster</h2>
+            <canvas id="scatterPlot"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h2>Cluster Size Distribution</h2>
+            <canvas id="distributionChart"></canvas>
+        </div>
+
+        <div class="cluster-stats">
+            <h2>Cluster Statistics</h2>
+            <div id="clusterStatsTable"></div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging
+        console.log("Initial data:", {
+            clusterData: {{ cluster_data|safe }},
+            stats: {{ stats|safe }},
+            clusterStats: {{ cluster_stats|safe }},
+            featureNames: {{ feature_names|safe }}
+        });
+
+        // Global variables
+        let scatterChart = null;
+        const clusterData = {{ cluster_data|safe }};
+        const stats = {{ stats|safe }};
+        const clusterStats = {{ cluster_stats|safe }};
+        const featureNames = {{ feature_names|safe }};
+
+        // Initialize the variable selectors
+        function initializeSelectors() {
+            const xSelect = document.getElementById('xVariable');
+            const ySelect = document.getElementById('yVariable');
+            
+            xSelect.innerHTML = '';
+            ySelect.innerHTML = '';
+            
+            Object.entries(featureNames).forEach(([key, label]) => {
+                xSelect.add(new Option(label, key));
+                ySelect.add(new Option(label, key));
+            });
+            
+            // Set default values
+            xSelect.value = 'age';
+            ySelect.value = 'trestbps';
+        }
+
+        // Update scatter plot
+        function updateScatterPlot() {
+            const xVar = document.getElementById('xVariable').value;
+            const yVar = document.getElementById('yVariable').value;
+            
+            if (scatterChart) {
+                scatterChart.destroy();
+            }
+
+            const datasets = Object.entries(clusterData).map(([clusterId, data]) => {
+                const color = `hsl(${360 * (parseInt(clusterId) / Object.keys(clusterData).length)}, 70%, 50%)`;
+                
+                return {
+                    label: `Cluster ${clusterId}`,
+                    data: data.points.map(point => ({
+                        x: point[Object.keys(featureNames).indexOf(xVar)],
+                        y: point[Object.keys(featureNames).indexOf(yVar)]
+                    })),
+                    backgroundColor: color,
+                    pointStyle: 'circle',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                };
+            });
+
+            const ctx = document.getElementById('scatterPlot').getContext('2d');
+            scatterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: featureNames[xVar]
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: featureNames[yVar]
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create distribution chart
+        function createDistributionChart() {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stats.points_per_cluster).map(c => `Cluster ${c}`),
+                    datasets: [{
+                        label: 'Patients per Cluster',
+                        data: Object.values(stats.points_per_cluster),
+                        backgroundColor: Object.keys(stats.points_per_cluster).map((_, i, arr) => 
+                            `hsl(${360 * (i / arr.length)}, 70%, 50%)`
+                        )
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Patients'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create cluster statistics table
+        function createClusterStatsTable() {
+            const table = document.createElement('table');
+            let html = '<tr><th>Cluster</th><th>Size</th>';
+            
+            // Add feature headers
+            Object.values(featureNames).forEach(name => {
+                html += `<th>${name} (avg)</th>`;
+            });
+            html += '</tr>';
+            
+            // Add data rows
+            Object.entries(clusterStats).forEach(([clusterId, stats]) => {
+                html += `<tr><td>Cluster ${clusterId}</td>`;
+                html += `<td>${clusterData[clusterId].size}</td>`;
+                
+                Object.keys(featureNames).forEach(feature => {
+                    const value = stats.mean[feature];
+                    html += `<td>${value ? value.toFixed(2) : 'N/A'}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            table.innerHTML = html;
+            document.getElementById('clusterStatsTable').innerHTML = '';
+            document.getElementById('clusterStatsTable').appendChild(table);
+        }
+
+        // Update summary statistics
+        function updateSummaryStats() {
+            document.getElementById('totalClusters').textContent = stats.total_clusters;
+            document.getElementById('totalPoints').textContent = stats.total_points;
+            document.getElementById('dimensions').textContent = 
+                Object.keys(featureNames).length + " features";
+        }
+
+        // Initialize everything when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Initializing dashboard...");
+            initializeSelectors();
+            updateScatterPlot();
+            createDistributionChart();
+            createClusterStatsTable();
+            updateSummaryStats();
+        });
+    </script>
+</body>
+</html>
