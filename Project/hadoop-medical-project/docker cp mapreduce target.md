@@ -1,50 +1,40 @@
+# Hadoop K-means Clustering Deployment Guide
 
-#compile jar if we change it
+## 1. Building the Application
+```bash
+# Compile the MapReduce JAR file
 cd mapreduce
 mvn clean package
 cd ..
 
-
-#Move it to hdfs
+# Copy JAR file to the Hadoop namenode
 docker cp mapreduce/target/hadoop-KMeansClusterer-1.0-SNAPSHOT.jar namenode:/KMeans.jar
 
-
-
-# First remove old output directory if it exists
+# Clean up previous output to avoid conflicts
 docker exec namenode hadoop fs -rm -r /user/root/heart/output
 
-# creat csv in input folder
 
+# Copy input data to the container
 docker cp heart.csv namenode:/tmp/heart.csv
 
-
-
-
-
-
-# make directory and move heart csv tio directory
+# Create HDFS directory structure and upload data
 docker exec namenode hadoop fs -mkdir -p /user/root/heart/input
 docker exec namenode hadoop fs -put /tmp/heart.csv /user/root/heart/input/
 
 
-# First, remove the old file in the container (if it exists)
+# Remove old results from container
 docker exec namenode rm -f /tmp/kmeans_results.csv
 
-# Then remove the old file in your local webapp directory (if it exists)
+# Remove old results from local webapp directory
 rm -f ./webapp/kmeans_results.csv
 
-# execute map reude job
 
 
+# Run the K-means clustering job
 docker exec namenode hadoop jar /KMeans.jar /user/root/heart/input /user/root/heart/output
 
-
-# copy the stuff accross
+# Copy results from HDFS to container
 docker exec namenode hadoop fs -get /user/root/heart/output/part-r-00000 /tmp/kmeans_results.csv
 
+# Copy results from container to local webapp
 docker cp namenode:/tmp/kmeans_results.csv ./webapp/kmeans_results.csv
-
-
-
-
-

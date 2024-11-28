@@ -13,7 +13,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class KMeansClusterer {
-    // Point class remains the same
     public static class Point {
         private double[] dimensions;
         
@@ -37,7 +36,6 @@ public class KMeansClusterer {
             return Math.sqrt(sum);
         }
         
-        // Modified toString to ensure consistent formatting
         public String toString() {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < dimensions.length; i++) {
@@ -52,7 +50,7 @@ public class KMeansClusterer {
         }
     }
     
-    // Mapper remains the same
+    // Mapper
     public static class KMeansMapper extends Mapper<Object, Text, Text, Text> {
         private List<Point> centroids = new ArrayList<>();
         private boolean isFirstLine = true;
@@ -111,7 +109,6 @@ public class KMeansClusterer {
         public void reduce(Text key, Iterable<Text> values, Context context) 
                 throws IOException, InterruptedException {
             
-            // Write header if this is the first output
             if (isFirstOutput) {
                 context.write(new Text("age,sex,cp,trestbps,chol,fbs,restecg,thalach,exang,oldpeak,slope,ca,thal,target,cluster"), 
                              new Text(""));
@@ -124,7 +121,6 @@ public class KMeansClusterer {
             }
             
             if (!points.isEmpty()) {
-                // Output points with cluster number as last column
                 for (Point point : points) {
                     String outputLine = point.toString() + "," + key.toString();
                     context.write(new Text(outputLine), new Text(""));
@@ -138,7 +134,6 @@ public class KMeansClusterer {
         
         conf.setInt("dimensions", 14);
         
-        // Updated centroids with proper formatting
         conf.set("centroids", "63,1,3,145,233,1,0,150,0,2.3,0,0,1;" +
                             "67,1,4,160,286,0,0,108,1,1.5,1,3,2;" +
                             "67,1,3,120,229,0,0,129,1,2.6,1,2,3");
